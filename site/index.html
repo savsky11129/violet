@@ -153,7 +153,7 @@ html,body{height:100%}
 body{background:var(--bg);background-image:radial-gradient(1200px 520px at 78% -140px,var(--bg-wash),transparent 70%);background-attachment:fixed;color:var(--ink);font:15px/1.55 var(--f-body);-webkit-font-smoothing:antialiased}
 h1,h2,h3{font-family:var(--f-display);margin:0;text-wrap:balance;letter-spacing:-.015em}
 h1{font-size:clamp(2rem,4.4vw,3.1rem);font-weight:700;line-height:1.02;letter-spacing:-.03em}
-h1 em,.serif{font-family:var(--f-serif);font-style:italic;font-weight:400;letter-spacing:-.01em}
+h1 em,.serif{font-family:var(--f-serif);font-style:normal;font-weight:400;letter-spacing:-.01em}
 h1 em{color:var(--accent);padding-right:.04em}
 h2{font-size:1.08rem;font-weight:700}
 h3{font-size:.98rem;font-weight:700}
@@ -209,6 +209,9 @@ main>*:nth-child(2){animation-delay:.04s} main>*:nth-child(3){animation-delay:.0
 .lk-word{font-family:var(--f-serif);font-style:italic;font-size:2.6rem;line-height:1}
 .lk-warn{display:flex;gap:10px;align-items:flex-start;padding:12px 14px;border-radius:12px;background:rgba(245,128,157,.14);border:1px solid rgba(245,128,157,.4);font-size:.86rem;color:#ffe4ec;cursor:pointer}
 .lk-warn input{margin-top:3px;flex:none}
+.pass-match{min-height:1.2em;font-size:.86rem;margin:0;color:var(--ink-3)}
+.pass-match.ok{color:var(--good)} .pass-match.no{color:var(--bad)}
+.lock .pass-match{color:#d9c8f6} .lock .pass-match.ok{color:#7be0ac} .lock .pass-match.no{color:#ffb3c5}
 .lk-err{min-height:1.2em;color:#ffb3c5;font-size:.88rem;margin:0}
 .lk-btn{width:100%;justify-content:center;padding:12px 16px;font-size:1rem}
 .lk-card .btn.ghost{color:#d9c8f6}
@@ -227,13 +230,13 @@ main>*:nth-child(2){animation-delay:.04s} main>*:nth-child(3){animation-delay:.0
 .kpis .kpi .v{font-size:min(1.7rem,14cqi)}
 .hist-stats>div .v{font-size:min(1.6rem,14cqi)}
 .hero-card .hc-bal{font-size:min(clamp(3rem,7.6vw,5.2rem),15cqi)}
-#bellwrap{position:fixed;top:calc(16px + var(--safe-area-inset-top,env(safe-area-inset-top,0px)));right:clamp(16px,3vw,28px);z-index:45}
+#bellwrap{position:fixed;top:calc(16px + var(--safe-area-inset-top,env(safe-area-inset-top,0px)));right:clamp(16px,3vw,28px);z-index:45;display:flex;gap:10px}
 .bell{position:relative;width:46px;height:46px;border-radius:50%;display:grid;place-items:center;cursor:pointer;color:var(--ink);background:var(--glass);border:1px solid var(--line-2);box-shadow:var(--shadow-1);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);transition:transform .15s}
 .bell:hover{transform:translateY(-1px);color:var(--accent)}
 .bell svg{width:21px;height:21px}
 .badge{position:absolute;top:-3px;right:-3px;min-width:20px;height:20px;padding:0 5px;border-radius:99px;background:linear-gradient(180deg,#e0577d,var(--bad));color:#fff;font-size:.7rem;font-weight:700;display:grid;place-items:center;border:2px solid var(--bg)}
 #main{padding-top:calc(76px + 0px)}
-.head{padding-right:56px}
+.head{padding-right:112px}
 .nlist{display:flex;flex-direction:column;gap:10px;max-height:60vh;overflow:auto}
 .nitem{display:flex;gap:12px;align-items:flex-start;padding:14px;border-radius:14px;background:var(--surface);border:1px solid var(--line)}
 .nitem.unread{border-color:var(--accent-2);background:linear-gradient(90deg,var(--accent-soft),var(--surface) 60%)}
@@ -391,7 +394,7 @@ td input{padding:5px 8px;font-size:.84rem}
 .drop-icon{width:68px;height:68px;border-radius:22px;display:grid;place-items:center;background:var(--grad-btn);color:#fff;margin-bottom:8px;box-shadow:0 14px 28px -12px rgba(113,64,191,.8),inset 0 1px 0 rgba(255,255,255,.3)}
 .drop-icon svg{width:28px;height:28px}
 .drop h2{font-family:var(--f-display);font-size:1.55rem;letter-spacing:-.02em}
-.drop h2 em{font-family:var(--f-serif);font-weight:400;color:var(--accent)}
+.drop h2 em{font-family:var(--f-serif);font-style:normal;font-weight:400;color:var(--accent)}
 .drop p{color:var(--ink-2);font-size:.92rem;max-width:56ch}
 .drop .btn{margin-top:10px;pointer-events:none}
 .formats{display:flex;gap:6px;justify-content:center;flex-wrap:wrap;margin-top:14px}
@@ -591,6 +594,18 @@ td input{padding:5px 8px;font-size:.84rem}
 <script>
 "use strict";
 const OFFLINE_BUILD = !!window.VIOLET_OFFLINE;
+// Light / dark mode. Follows the device until the user picks one with the moon/sun button; the choice is
+// a plain "light"/"dark" note in local storage (not financial data), so it applies even on the lock screen.
+const Theme = {
+  KEY:'violet-theme',
+  saved(){ try{ return localStorage.getItem(this.KEY) } catch(e){ return null } },
+  apply(t){ const r = document.documentElement; if(t === 'dark' || t === 'light') r.dataset.theme = t; else delete r.dataset.theme;
+    const m = document.querySelector('meta[name=theme-color]'); if(m) m.content = this.current() === 'dark' ? '#120a1e' : '#26114a' },
+  current(){ return document.documentElement.dataset.theme || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light') },
+  toggle(){ const next = this.current() === 'dark' ? 'light' : 'dark'; this.apply(next); try{ localStorage.setItem(this.KEY, next) } catch(e){} renderBell() }
+};
+Theme.apply(Theme.saved());
+matchMedia('(prefers-color-scheme: dark)').addEventListener?.('change', () => { if(!Theme.saved()){ Theme.apply(null); renderBell() } });
 // Running inside the Capacitor iOS/Android app?
 const NATIVE = !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
 const Native = name => NATIVE ? (window.Capacitor.Plugins?.[name] || window.Capacitor.registerPlugin?.(name)) : null;
@@ -808,9 +823,10 @@ const Lock = {
       <form id="setup-form" class="stack" style="gap:12px">
         <label class="f">Passcode (at least 6 characters)<input type="password" id="lk-new" autocomplete="new-password" minlength="6" required></label>
         <label class="f">Type it again<input type="password" id="lk-new2" autocomplete="new-password" minlength="6" required></label>
+        <p class="pass-match" id="lk-match" aria-live="polite"></p>
         <label class="lk-warn"><input type="checkbox" id="lk-ack" required><span><b>If I forget this passcode, my data can’t be recovered.</b> Not by me, and not by anyone else. There is no reset.</span></label>
         <p class="lk-err" id="lk-err">${esc(msg||'')}</p>
-        <button class="btn primary lk-btn">Create passcode</button>
+        <button class="btn primary lk-btn" id="lk-create" disabled>Create passcode</button>
       </form></div>`;
     else el.innerHTML = `<div class="lk-card">${head}
       <h2>Enter your passcode</h2>
@@ -1536,6 +1552,18 @@ function openWipe(fromLock){
   openModal(html, true);
   $('#modal').style.zIndex = 99;   // above the lock screen when opened from there
 }
+// Live check while a new passcode is typed twice: the button only unlocks when both boxes match.
+function checkPassMatch(first, second, out, button, ack){
+  const a = $(first)?.value || '', b = $(second)?.value || '', o = $(out), btn = $(button); if(!o || !btn) return;
+  let msg = '', cls = '', ok = false;
+  if(!a && !b) msg = '';
+  else if(a.length < 6){ msg = 'Use at least 6 characters'; cls = 'no' }
+  else if(!b) msg = 'Now type it again in the second box';
+  else if(a === b){ msg = '✓ Passcodes match'; cls = 'ok'; ok = true }
+  else { msg = '✗ Passcodes don’t match yet'; cls = 'no' }
+  o.textContent = msg; o.className = 'pass-match ' + cls;
+  btn.disabled = !(ok && (!ack || $(ack)?.checked));
+}
 async function changePasscode(oldP, newP, newP2){
   const err = t => { const e = $('#cp-err'); if(e) e.textContent = t };
   if(newP.length < 6) return err('Use at least 6 characters for the new passcode.');
@@ -1665,8 +1693,10 @@ const ago = iso => { const m = Math.round((Date.now() - new Date(iso))/60000); r
 function renderBell(){
   const w = $('#bellwrap'); if(!w) return;
   if(Store.mode === 'loading'){ w.innerHTML = ''; return }
-  const n = unreadCount();
-  w.innerHTML = `<button class="bell" data-a="notifs" aria-label="Notifications${n?`, ${n} unread`:''}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.9 1.9 0 0 0 3.4 0"/></svg>${n?`<span class="badge">${n>9?'9+':n}</span>`:''}</button>`;
+  const n = unreadCount(), dark = Theme.current() === 'dark';
+  w.innerHTML = `<button class="bell" data-a="theme" aria-label="${dark ? 'Switch to light mode' : 'Switch to dark mode'}" title="${dark ? 'Light mode' : 'Dark mode'}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${dark
+      ? '<circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2.2M12 19.3v2.2M4.6 4.6l1.6 1.6M17.8 17.8l1.6 1.6M2.5 12h2.2M19.3 12h2.2M4.6 19.4l1.6-1.6M17.8 6.2l1.6-1.6"/>'
+      : '<path d="M20.5 14.2A8.5 8.5 0 0 1 9.8 3.5a8.5 8.5 0 1 0 10.7 10.7z"/>'}</svg></button><button class="bell" data-a="notifs" aria-label="Notifications${n?`, ${n} unread`:''}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.9 1.9 0 0 0 3.4 0"/></svg>${n?`<span class="badge">${n>9?'9+':n}</span>`:''}</button>`;
 }
 function openNotifs(){
   const items = notifDoc().items.filter(n => !n.dismissed);
@@ -1820,6 +1850,7 @@ document.addEventListener('click', async e => {
   else if(a==='del-goal'){ await Store.del(id); toast('Goal deleted') }
   else if(a==='goal-sub'){ const f = el.closest('form'); const v = +f.querySelector('input').value; if(!v) return; const g = clone(Store.get(id)); g.saved = Math.max(0, g.saved - Math.abs(v)); (g.log ||= []).push({d:todayISO(), amt:-Math.abs(v)}); await Store.put(g) }
   else if(a==='notifs'){ openNotifs() }
+  else if(a==='theme'){ Theme.toggle() }
   else if(a==='lock-now'){ Lock.now() }
   else if(a==='privacy'){ const t = document.getElementById('privacy-policy'); openModal(`<div class="sheet-h"><span class="eyebrow">Settings</span><button class="x" data-a="close" aria-label="Close">×</button></div>${t ? t.innerHTML : '<p>The privacy policy is included when Violet is built.</p>'}`, true) }
   else if(a==='lk-forgot'){ openWipe(true) }
@@ -1827,8 +1858,9 @@ document.addEventListener('click', async e => {
   else if(a==='change-pass'){ openModal(`<div class="sheet-h"><div><span class="eyebrow">Passcode</span><h2>Change your passcode</h2></div><button class="x" data-a="close" aria-label="Close">×</button></div>
     <form id="change-pass-form" class="stack" style="gap:10px"><label class="f">Current passcode<input type="password" id="cp-old" autocomplete="current-password" required></label>
     <label class="f">New passcode (at least 6 characters)<input type="password" id="cp-new" autocomplete="new-password" required></label><label class="f">Type the new passcode again<input type="password" id="cp-new2" autocomplete="new-password" required></label>
+    <p class="pass-match" id="cp-match" aria-live="polite"></p>
     <p style="color:var(--bad);font-size:.86rem">If you forget the new passcode, your data can’t be recovered.</p><p id="cp-err" style="color:var(--bad);font-size:.86rem;min-height:1.2em"></p>
-    <div class="row" style="justify-content:flex-end"><button type="button" class="btn" data-a="close">Cancel</button><button class="btn primary">Change passcode</button></div></form>`, true) }
+    <div class="row" style="justify-content:flex-end"><button type="button" class="btn" data-a="close">Cancel</button><button class="btn primary" id="cp-submit" disabled>Change passcode</button></div></form>`, true) }
   else if(a==='n-go'){ const g = el.dataset.go; closeModal(); if(g==='review-prices') openPriceReview(); else go(g) }
   else if(a==='n-dismiss'){ const nid = el.dataset.id; el.closest('.nitem')?.remove(); updateNotifs(doc => { const n = doc.items.find(x=>x.id===nid); if(!n) return false; n.dismissed = true; n.read = true }) }
   else if(a==='n-clear'){ closeModal(); updateNotifs(doc => { doc.items.forEach(n => { n.dismissed = true; n.read = true }) }); toast('Notifications cleared') }
@@ -1844,6 +1876,7 @@ document.addEventListener('click', async e => {
 });
 document.addEventListener('change', async e => {
   const t = e.target;
+  if(t.id === 'lk-ack'){ checkPassMatch('#lk-new', '#lk-new2', '#lk-match', '#lk-create', '#lk-ack'); return }
   if(t.id === 'file'){ handleFiles([...t.files]); t.value = ''; return }
   if(t.dataset.a === 'set-cat'){
     const id = t.dataset.id, i = +t.dataset.i, cat = t.value;
@@ -1865,6 +1898,8 @@ document.addEventListener('change', async e => {
 let qT;
 document.addEventListener('input', e => {
   const t = e.target;
+  if(t.id === 'lk-new' || t.id === 'lk-new2') checkPassMatch('#lk-new', '#lk-new2', '#lk-match', '#lk-create', '#lk-ack');
+  if(t.id === 'cp-new' || t.id === 'cp-new2') checkPassMatch('#cp-new', '#cp-new2', '#cp-match', '#cp-submit');
   if(t.id === 'tx-q'){ clearTimeout(qT); qT = setTimeout(()=>{ txFilter.q = t.value; render(); const n = $('#tx-q'); if(n){ n.focus(); n.setSelectionRange(n.value.length,n.value.length) } }, 250) }
   if(t.id === 'p-q'){ clearTimeout(qT); qT = setTimeout(()=>{ priceQ = t.value; render(); const n = $('#p-q'); if(n){ n.focus(); n.setSelectionRange(n.value.length,n.value.length) } }, 250) }
 });
